@@ -27,7 +27,7 @@ public class Bastracker {
      * @param args the command line arguments
      */
     private static int[] fq = new int[97];
-    private static Vector[] vnotes = new Vector[3];
+    private static Vector<Dupla>[] vnotes = new Vector[3];
     private static String voices;
     private static int rownum = 10;
     private static int arraydim = 0;
@@ -232,7 +232,127 @@ public class Bastracker {
             }
         }
     }
-
+    
+    public static String getDataBlockHLMIXED(){
+        boolean end=false;
+        rownum += 10;
+        String[] presetsId = voices.split(",");
+        String ret = "";
+        Preset[] presets = new Preset[3];
+        for (int t = 0; t < 3; t++) {
+            try {
+                presets[t] = VoicesFactory.getPresetById(Integer.valueOf(presetsId[t]));
+            } catch (ClassNotFoundException ex) {
+                Logger.getLogger(Bastracker.class.getName()).log(Level.SEVERE, null, ex);
+                System.exit(1);
+            }
+        }
+        Vector duple0=vnotes[0];
+        Vector duple1=vnotes[1];
+        Vector duple2=vnotes[2];
+        int[] indexVector={0,0,0};
+        
+        
+        do{
+            try{
+            Dupla dupla0=((Dupla)duple0.elementAt(indexVector[0]));
+            Dupla dupla1=((Dupla)duple1.elementAt(indexVector[1]));
+            Dupla dupla2=((Dupla)duple2.elementAt(indexVector[2]));
+            String blocco0="";
+            String blocco1="";
+            String blocco2="";
+            
+            int[] progressToGoal={0,0,0};
+            int goal=getMax(dupla0.getDurationRevised(presets[0].getTc()),
+                    dupla1.getDurationRevised(presets[1].getTc()),
+                   dupla2.getDurationRevised(presets[2].getTc())
+                    );
+            
+                int c0=0;
+                while(true){
+                    //System.out.println("goal="+goal+" , progressToGoal0="+progressToGoal[0]);
+                if (progressToGoal[0]==goal)
+                    break;
+                blocco0+= (dupla0.getFh() + ",") + (dupla0.getFl() + ",") + dupla0.getDurationRevised(presets[0].getTc()) + ",";
+                progressToGoal[0]+=dupla0.getDurationRevised(presets[0].getTc());
+                indexVector[0]++;
+                dupla0=((Dupla)duple0.elementAt(indexVector[0]));
+                c0++;
+                }
+                blocco0=c0+","+blocco0;
+                
+                int c1=0;
+                while(true){
+                if (progressToGoal[1]==goal)
+                    break;
+                blocco1+= (dupla1.getFh() + ",") + (dupla1.getFl() + ",") + dupla1.getDurationRevised(presets[1].getTc()) + ",";
+                progressToGoal[1]+=dupla1.getDurationRevised(presets[1].getTc());
+                indexVector[1]++;
+                dupla1=((Dupla)duple1.elementAt(indexVector[1]));
+                c1++;
+                }
+                blocco1=c1+","+blocco1;
+                
+                int c2=0;
+                while(true){
+                if (progressToGoal[2]==goal)
+                    break;
+                blocco2+= (dupla2.getFh() + ",") + (dupla2.getFl() + ",") + dupla2.getDurationRevised(presets[2].getTc()) + ",";
+                progressToGoal[2]+=dupla2.getDurationRevised(presets[2].getTc());
+                indexVector[2]++;
+                dupla2=((Dupla)duple2.elementAt(indexVector[2]));
+                c2++;
+                }
+                blocco2=c2+","+blocco2;
+                
+                String blocco=blocco0+blocco1+blocco2;
+                if (blocco.length()>79){
+                    Vector blocchisplit=splitBlock(blocco);
+                    for(int t=0;t<blocchisplit.size();t++){
+                         String bloccosplit=(String)blocchisplit.elementAt(t);
+                         if (bloccosplit.endsWith(","))
+                             bloccosplit=bloccosplit.substring(0, bloccosplit.length() - 1);
+                        ret+="\n"+rownum+"data"+bloccosplit;                         
+                         rownum+=10;
+                    }
+                }else {
+                ret+="\n"+rownum+"data"+blocco;
+                ret=ret.substring(0, ret.length() - 1);
+                rownum+=10;}
+            }catch(Exception e){
+                end=true;
+            }
+        }while(!end);
+        return ret;
+    }
+    
+    
+    
+    private static Vector splitBlock(String block){
+        
+        if (block.length()<=80)
+        {
+            Vector ret=new Vector();
+            ret.add(block);
+            return ret;
+        }
+        try{
+            int pos=79;
+            while(!block.substring(pos-1, pos).equals(","))
+                pos--;
+            Vector ret=new Vector();
+            ret.add(block.substring(0,pos));
+            ret.addAll(splitBlock(block.substring(pos,block.length()-1)));
+           return ret;
+        }catch(Exception e){
+           return null;
+        }
+    }
+    
+    private static int getMax(int a,int b,int c){
+        return Math.max(a, Math.max(b, c));
+    }
+    
     public static String getDataBlockHL() {
         rownum += 10;
         String[] presetsId = voices.split(",");
@@ -446,7 +566,7 @@ public class Bastracker {
             Logger.getLogger(Bastracker.class.getName()).log(Level.SEVERE, null, ex);
         }
         try {
-            System.out.println(getDefInstrumentsBlock() + getDataBlockHL());
+            System.out.println(getDefInstrumentsBlock() + getDataBlockHLMIXED());
             //System.out.println(vnotes[0].size() + vnotes[1].size() + vnotes[2].size());
         } catch (ClassNotFoundException ex) {
             Logger.getLogger(Bastracker.class.getName()).log(Level.SEVERE, null, ex);
