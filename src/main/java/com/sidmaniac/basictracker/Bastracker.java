@@ -537,7 +537,7 @@ public class Bastracker {
         
         
         args=new String[1];
-        args[0]="c:\\tmp\\sirius.txt";
+        //args[0]="c:\\tmp\\sirius.txt";
         
         if (args==null|| args.length==0){
             System.out.println("put at least the path of the music sheet file");
