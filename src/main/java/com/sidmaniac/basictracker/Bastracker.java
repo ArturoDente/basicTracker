@@ -554,7 +554,7 @@ public class Bastracker {
         rownum = Integer.valueOf(startsFrom);
         initArray();
         String filepath=args[args.length-1];
-        args[0]="c:\\tmp\\sirius.txt";
+        //args[0]="c:\\tmp\\sirius.txt";
         if (filepath.startsWith("-")){
             System.out.println("put music sheet file as last argument");
             System.exit(1);
