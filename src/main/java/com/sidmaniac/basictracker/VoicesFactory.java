@@ -65,27 +65,21 @@ public class VoicesFactory {
       return ret;   
      }
              
-    
+    public static Preset getPresetByName(String name) throws ClassNotFoundException{
+        try {
+             Vector<Preset> presets=getAllPresets();
+             for (Preset p: presets){
+                 if(p.getPresetName().equalsIgnoreCase(name))
+                     return p;
+             }
+             return null;
+         } catch (IOException ex) {
+             Logger.getLogger(VoicesFactory.class.getName()).log(Level.SEVERE, null, ex);
+             return null;
+         }
+    }
     public static Preset getPresetById(int id) throws ClassNotFoundException {
          try {
-             /* List<Class> presets = Support.ClassFinder.getClassesFromPackage("Presets");
-             
-             for (Class c : presets) {
-             String classname = c.getCanonicalName();
-             
-             try {
-             Preset preset = (Preset)Class.forName(classname).newInstance();
-             if (preset.getClass().getSuperclass().getCanonicalName().equals(Preset.class.getCanonicalName()) && preset.getPreset_id() == id) {
-             return (Preset)Class.forName(preset.getClass().getCanonicalName()).newInstance();
-             }
-             } catch (InstantiationException ex) {
-             Logger.getLogger(VoicesFactory.class.getName()).log(Level.SEVERE, null, ex);
-             } catch (IllegalAccessException ex) {
-             Logger.getLogger(VoicesFactory.class.getName()).log(Level.SEVERE, null, ex);
-             }
-             
-             }
-             return null;*/
              Vector<Preset> presets=getAllPresets();
              for (Preset p: presets){
                  if(p.getPreset_id()==id)

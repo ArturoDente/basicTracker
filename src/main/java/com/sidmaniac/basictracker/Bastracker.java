@@ -6,6 +6,7 @@
 package com.sidmaniac.basictracker;
 
 import Presets.Preset;
+import Support.Utilities;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -29,8 +30,10 @@ public class Bastracker {
     private static int[] fq = new int[97];
     private static Vector<Dupla>[] vnotes = new Vector[3];
     private static String voices;
+    private static int[] octaveTranspose={0,0,0};
     private static int rownum = 10;
     private static int arraydim = 0;
+    private static String debugInfo="";
 
     private static String left$(String str, int n) {
         try {
@@ -48,8 +51,14 @@ public class Bastracker {
     private static String right$(String str, int n) {
         return str.substring(str.length() - n, str.length());
     }
+    
+    
+     private static int convertNoteToFreq(String f$) {
+         return convertNoteToFreq(f$, 0);
+     }
+    
 
-    private static int convertNoteToFreq(String f$) {
+    private static int convertNoteToFreq(String f$,int octaveTranspose) {
 
         int i1 = 0;
         String k1$ = left$(f$, len(f$) - 1);
@@ -96,7 +105,7 @@ public class Bastracker {
         if (k1$.equals("b")) {
             i1 = 12;
         }
-        i1 = 12 * Integer.valueOf(o1$) + i1;
+        i1 = 12 * (Integer.valueOf(o1$)+octaveTranspose ) + i1;
         return fq[i1];
     }
 
@@ -214,7 +223,7 @@ public class Bastracker {
     }
 
     private static void initVoicesNotes(String csvPath) throws IOException {
-        String content = readFile(csvPath);
+        String content = readFile(csvPath).replaceAll(":", "").replaceAll("\\<.*?>","");
         String[] arr = content.split(",");
         vnotes[0] = new Vector();
         vnotes[1] = new Vector();
@@ -223,7 +232,7 @@ public class Bastracker {
         int v = 0;
         for (int t = 0; t < arr.length - 1; t = t + 2) {
             Dupla dupla = new Dupla(arr[t], arr[t + 1]);
-            int freq = convertNoteToFreq(dupla.getNote());
+            int freq = convertNoteToFreq(dupla.getNote(),octaveTranspose[v]);
             Dupla freqAndDuration = new Dupla("" + freq, dupla.getDuration());
             if (!dupla.isTransitionDupla()) {
                 vnotes[v].add(freqAndDuration);
@@ -251,6 +260,9 @@ public class Bastracker {
         Vector duple1=vnotes[1];
         Vector duple2=vnotes[2];
         int[] indexVector={0,0,0};
+        boolean end1=false;
+        boolean end2=false;
+        boolean end3=false;
         
         
         do{
@@ -271,36 +283,48 @@ public class Bastracker {
                 int c0=0;
                 while(true){
                     //System.out.println("goal="+goal+" , progressToGoal0="+progressToGoal[0]);
-                if (progressToGoal[0]==goal)
+                if (progressToGoal[0]>=goal)
                     break;
                 blocco0+= (dupla0.getFh() + ",") + (dupla0.getFl() + ",") + dupla0.getDurationRevised(presets[0].getTc()) + ",";
                 progressToGoal[0]+=dupla0.getDurationRevised(presets[0].getTc());
                 indexVector[0]++;
-                dupla0=((Dupla)duple0.elementAt(indexVector[0]));
+                try{
+                    dupla0=((Dupla)duple0.elementAt(indexVector[0]));
+                } catch (Exception ee){
+                    end1=true;
+                }
                 c0++;
                 }
                 blocco0=c0+","+blocco0;
                 
                 int c1=0;
                 while(true){
-                if (progressToGoal[1]==goal)
+                if (progressToGoal[1]>=goal)
                     break;
                 blocco1+= (dupla1.getFh() + ",") + (dupla1.getFl() + ",") + dupla1.getDurationRevised(presets[1].getTc()) + ",";
                 progressToGoal[1]+=dupla1.getDurationRevised(presets[1].getTc());
                 indexVector[1]++;
-                dupla1=((Dupla)duple1.elementAt(indexVector[1]));
+                try{
+                    dupla1=((Dupla)duple1.elementAt(indexVector[1]));
+                }catch(Exception ee){
+                    end2=true;
+                }
                 c1++;
                 }
                 blocco1=c1+","+blocco1;
                 
                 int c2=0;
                 while(true){
-                if (progressToGoal[2]==goal)
+                if (progressToGoal[2]>=goal)
                     break;
                 blocco2+= (dupla2.getFh() + ",") + (dupla2.getFl() + ",") + dupla2.getDurationRevised(presets[2].getTc()) + ",";
                 progressToGoal[2]+=dupla2.getDurationRevised(presets[2].getTc());
                 indexVector[2]++;
-                dupla2=((Dupla)duple2.elementAt(indexVector[2]));
+                try{
+                    dupla2=((Dupla)duple2.elementAt(indexVector[2]));
+                }catch(Exception ee){
+                    end3=true;
+                }
                 c2++;
                 }
                 blocco2=c2+","+blocco2;
@@ -320,9 +344,10 @@ public class Bastracker {
                 ret=ret.substring(0, ret.length() - 1);
                 rownum+=10;}
             }catch(Exception e){
-                end=true;
+                e.printStackTrace();
+                System.exit(1);
             }
-        }while(!end);
+        }while(!end1&&!end2&&!end3);
         return ret;
     }
     
@@ -372,11 +397,13 @@ public class Bastracker {
             Vector dupleVoceN = vnotes[v];
             int caratteririga = 0;
             ret = ret + "\n" + (rownum + " data ");
+            int debugDuration=0;
             for (int d = 0; d < dupleVoceN.size(); d++) {
                 Dupla freqDuration = (Dupla) dupleVoceN.elementAt(d);
                 int fh = freqDuration.getFh();
                 int fl = freqDuration.getFl();
                 int durationRevisited = freqDuration.getDurationRevised(presets[v].getTc());
+                debugDuration+=durationRevisited;
                 //arraydim=arraydim+(2*durationRevisited);
                 String block = (fh + ",") + (fl + ",") + durationRevisited + ",";
                 caratteririga += block.length();
@@ -394,6 +421,7 @@ public class Bastracker {
             rownum += 10;
             ret += "\n" + rownum + " data -1,-1,-1";
             rownum += 10;
+            debugInfo+="\n"+debugDuration;
         }
         return ret;
     }
@@ -409,9 +437,34 @@ public class Bastracker {
         }
         arraydim+=2;
     }
+    
+    private static void purgeVoices(){
+        
+            /*
+            side effect on voices array. If an entry is not a number, tries to find the preset
+            for that name. If the preset does not exist, error
+            */
+            String[] arrVoices=voices.split(",");
+            for (int t=0;t<arrVoices.length;t++){
+                if (!Utilities.isNumber(arrVoices[t])){
+                    try{
+                        Preset found=VoicesFactory.getPresetByName(arrVoices[t]);
+                        arrVoices[t]=""+found.getPreset_id();
+                    } catch (Exception e){
+                        throw new IllegalStateException("Preset "+arrVoices[t]+" not found");
+                    }
+                }
+            }
+            voices="";
+            for (int t=0;t<arrVoices.length;t++){
+                voices+=arrVoices[t]+((t<arrVoices.length-1)?",":"");
+            }
+    }
 
-    private static String getDefInstrumentsBlock() throws ClassNotFoundException, IOException {
-        String ret = rownum + " dim ad(3):dim sr(3):dim il(3):dim ih(3):dim wi(3)";
+    private static String getDefInstrumentsBlock() throws ClassNotFoundException, IOException {        
+        Vector<Preset> allpresets=VoicesFactory.getAllPresets();
+        int numstrum=allpresets.size();
+        String ret = rownum + " dim ad("+numstrum+"):dim sr("+numstrum+"):dim il("+numstrum+"):dim ih("+numstrum+"):dim wi("+numstrum+")";
         String[] presetsId = voices.split(",");
         Preset[] presets = new Preset[3];
         for (int t = 0; t < 3; t++) {
@@ -423,7 +476,7 @@ public class Bastracker {
             }
         }
         
-        Vector<Preset> allpresets=VoicesFactory.getAllPresets();
+        
         if (allpresets==null || allpresets.size()==0){
             throw new IllegalStateException("No instruments defined. Subclass Preset class in order to define at least one");
         }
@@ -431,30 +484,30 @@ public class Bastracker {
         rownum += 10;        
         ret += "\n" + rownum;
         for (int t=0;t<allpresets.size();t++)
-            ret += "ad("+t+")=" + allpresets.elementAt(t).getAd() + ":";
+            ret += "ad("+allpresets.elementAt(t).getPreset_id()+")=" + allpresets.elementAt(t).getAd() + ":";
         
         rownum += 10;
         ret += "\n" + rownum;
         for (int t=0;t<allpresets.size();t++)
-            ret += "sr("+t+")=" + allpresets.elementAt(t).getSr() + ":";
-        
-        
-        rownum += 10;
-        ret += "\n" + rownum;
-        for (int t=0;t<allpresets.size();t++)
-            ret += "il("+t+")=" + allpresets.elementAt(t).getIl() + ":";
+            ret += "sr("+allpresets.elementAt(t).getPreset_id()+")=" + allpresets.elementAt(t).getSr() + ":";
         
         
         rownum += 10;
         ret += "\n" + rownum;
         for (int t=0;t<allpresets.size();t++)
-            ret += "ih("+t+")=" + allpresets.elementAt(t).getIh() + ":";
+            ret += "il("+allpresets.elementAt(t).getPreset_id()+")=" + allpresets.elementAt(t).getIl() + ":";
         
         
         rownum += 10;
         ret += "\n" + rownum;
         for (int t=0;t<allpresets.size();t++)
-            ret += "wi("+t+")=" + allpresets.elementAt(t).getWi() + ":";
+            ret += "ih("+allpresets.elementAt(t).getPreset_id()+")=" + allpresets.elementAt(t).getIh() + ":";
+        
+        
+        rownum += 10;
+        ret += "\n" + rownum;
+        for (int t=0;t<allpresets.size();t++)
+            ret += "wi("+allpresets.elementAt(t).getPreset_id()+")=" + allpresets.elementAt(t).getWi() + ":";
         
         
         rownum += 10;
@@ -535,10 +588,10 @@ public class Bastracker {
     public static void main(String[] args) {
         // TODO code application logic here
         
-        
+       /* if (args==null || args.length==0 || args[args.length-1].startsWith("-")){
         args=new String[1];
-        args[0]="c:\\tmp\\sirius.txt";
-        
+        args[0]="c:\\tmp\\bedmedicine.txt";
+        }*/
         if (args==null|| args.length==0){
             System.out.println("put at least the path of the music sheet file");
             System.exit(1);
@@ -548,13 +601,24 @@ public class Bastracker {
         if (voices == null || voices.equals("")) {
             voices = "0,0,0";
         }
+        
+        if(!getPropFromArgs("-ot1",args).equals("")){
+            octaveTranspose[0]=Integer.valueOf(getPropFromArgs("-ot1",args));
+        }
+        if(!getPropFromArgs("-ot2",args).equals("")){
+            octaveTranspose[1]=Integer.valueOf(getPropFromArgs("-ot2",args));
+        }
+        if(!getPropFromArgs("-ot3",args).equals("")){
+            octaveTranspose[2]=Integer.valueOf(getPropFromArgs("-ot3",args));
+        }
+        
+        purgeVoices();
         if (startsFrom.equals("")) {
             startsFrom = "10";
         }
         rownum = Integer.valueOf(startsFrom);
         initArray();
         String filepath=args[args.length-1];
-        args[0]="c:\\tmp\\sirius.txt";
         if (filepath.startsWith("-")){
             System.out.println("put music sheet file as last argument");
             System.exit(1);
@@ -566,7 +630,8 @@ public class Bastracker {
             Logger.getLogger(Bastracker.class.getName()).log(Level.SEVERE, null, ex);
         }
         try {
-            System.out.println(getDefInstrumentsBlock() + getDataBlockHLMIXED());
+            System.out.println(getDefInstrumentsBlock() + getDataBlockHL());
+            //System.out.println(debugInfo);
             //System.out.println(vnotes[0].size() + vnotes[1].size() + vnotes[2].size());
         } catch (ClassNotFoundException ex) {
             Logger.getLogger(Bastracker.class.getName()).log(Level.SEVERE, null, ex);
